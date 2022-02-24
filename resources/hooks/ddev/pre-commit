@@ -8,20 +8,9 @@
 # Fetch the GIT diff and format it as command input:
 DIFF=$(git -c diff.mnemonicprefix=false -c diff.noprefix=false --no-pager diff -r -p -m -M --full-index --no-color --staged | cat)
 
-COMMANDS="
-  cd $(DDEV_PROJECT_DIR)
-
-  # Add grumphp envs:
-  $(ENV)
-
-  # Transfer the DIFF
-  DIFF=\$(cat <<- '__GRUMPHP_DIFF_HEREDOC__'
-	${DIFF}
-	__GRUMPHP_DIFF_HEREDOC__
-  )
-
-  printf "%s\n" "\${DIFF}" | $(EXEC_GRUMPHP_COMMAND) $(HOOK_COMMAND) '--ansi' '--skip-success-output'
-"
+# Grumphp env vars
+$(ENV)
+export GRUMPHP_GIT_WORKING_DIR="$(git rev-parse --show-toplevel)"
 
 # Run GrumPHP
-cd $(DDEV_HOST_DIR) && ddev exec -j "{$COMMANDS}"
+(cd "${HOOK_EXEC_PATH}" && printf "%s\n" "${DIFF}" | ddev $(EXEC_GRUMPHP_COMMAND) $(HOOK_COMMAND) '--skip-success-output')

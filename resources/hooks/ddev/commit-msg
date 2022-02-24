@@ -7,39 +7,14 @@
 
 GIT_USER=$(git config user.name)
 GIT_EMAIL=$(git config user.email)
-
-# Fetch the commit message
 COMMIT_MSG_FILE=$1
-COMMIT_MSG=$(cat "${COMMIT_MSG_FILE}")
 
 # Fetch the GIT diff and format it as command input:
 DIFF=$(git -c diff.mnemonicprefix=false -c diff.noprefix=false --no-pager diff -r -p -m -M --full-index --no-color --staged | cat)
 
-COMMANDS="
-  cd $(DDEV_PROJECT_DIR)
+# Grumphp env vars
+$(ENV)
+export GRUMPHP_GIT_WORKING_DIR="$(git rev-parse --show-toplevel)"
 
-  # Add grumphp envs:
-  $(ENV)
-
-  # Transfer the DIFF
-  DIFF=\$(cat <<- '__GRUMPHP_DIFF_HEREDOC__'
-	${DIFF}
-	__GRUMPHP_DIFF_HEREDOC__
-  )
-
-  # Transfer the commit message
-  COMMIT_MSG=\$(cat <<- '__GRUMPHP_COMMIT_MSG_HEREDOC__'
-	${COMMIT_MSG}
-	__GRUMPHP_COMMIT_MSG_HEREDOC__
-  )
-
-  DDEV_COMMIT_MSG_FILE=\$(mktemp -t \"grumphp-commitmsg.XXXXXXXXXX\")
-  echo \"\${COMMIT_MSG}\" > \$DDEV_COMMIT_MSG_FILE
-  printf \"%s\n\" \"\${DIFF}\" | $(EXEC_GRUMPHP_COMMAND) $(HOOK_COMMAND) '--ansi' \"--git-user='$GIT_USER'\" \"--git-email='$GIT_EMAIL'\" \$DDEV_COMMIT_MSG_FILE
-  RC=\$?
-  rm \$DDEV_COMMIT_MSG_FILE
-  exit \$RC
-"
-
-# Copy the commit message and run GrumPHP
-cd $(DDEV_HOST_DIR) && ddev exec -j "{$COMMANDS}"
+# Run GrumPHP
+(cd "${HOOK_EXEC_PATH}" && printf "%s\n" "${DIFF}" | ddev $(EXEC_GRUMPHP_COMMAND) $(HOOK_COMMAND) "--git-user='$GIT_USER'" "--git-email='$GIT_EMAIL'" "$COMMIT_MSG_FILE")
